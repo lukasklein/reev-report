@@ -12,7 +12,7 @@ export default function Home() {
   const ladekarten = useMemo(() => {
     // @ts-ignore
     return ladevorgaenge
-      .map((ladevorgang) => ladevorgang.ladekarte)
+      .map((ladevorgang) => (ladevorgang as any).ladekarte)
       .filter((v, i, a) => a.indexOf(v) === i);
   }, [ladevorgaenge]);
   useEffect(() => {
