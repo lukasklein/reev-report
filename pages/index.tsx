@@ -18,8 +18,9 @@ export default function Home() {
   useEffect(() => {
     ladekarten.length && setLadekarte(ladekarten[0]);
   }, [ladekarten]);
-  const [tarif, setTarif] = useState(0.2869);
+  const [tarif, setTarif] = useState(0.3757);
   const [date, setDate] = useState(new Date());
+  const [range, setRange] = useState([new Date(), new Date()]);
   const componentRef = useRef();
 
   const handleChange = (file: any) => {
@@ -37,6 +38,7 @@ export default function Home() {
       const dataParse: any = XLSX.utils.sheet_to_json(ws, { header: 1 });
       console.log({ dataParse });
       setDate(dataParse[0][1]);
+      setRange([dataParse[1][1], dataParse[1][3]]);
       for (let i = 4; i < dataParse.length; i++) {
         const [
           _,
@@ -170,6 +172,7 @@ export default function Home() {
               {...{
                 date,
                 tarif,
+                range,
                 ladevorgaenge: ladevorgaenge
                   .filter((lv) => (lv as any).ladekarte === ladekarte)
                   .reverse(),
@@ -186,7 +189,8 @@ const Ladevorgaenge: FC<{
   date: Date;
   ladevorgaenge: any[];
   tarif: number;
-}> = forwardRef(function Ladevorgaenge({ date, ladevorgaenge, tarif }, ref) {
+  range: [Date, Date];
+}> = forwardRef(function Ladevorgaenge({ date, range, ladevorgaenge, tarif }, ref) {
   return (
     // @ts-ignore
     <div className="flex flex-col space-y-4 px-8 py-8" ref={ref}>
@@ -199,15 +203,13 @@ const Ladevorgaenge: FC<{
       </div>
       <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
         Dienstwagen-Ladevorgänge{" "}
-        {ladevorgaenge[0].eingestecktAm.toLocaleDateString("de-DE", {
+        {range[0].toLocaleDateString("de-DE", {
           day: "2-digit",
           month: "2-digit",
           year: "numeric",
         })}{" "}
         -{" "}
-        {ladevorgaenge[
-          ladevorgaenge.length - 1
-        ].eingestecktAm.toLocaleDateString("de-DE", {
+        {range[1].toLocaleDateString("de-DE", {
           day: "2-digit",
           month: "2-digit",
           year: "numeric",
