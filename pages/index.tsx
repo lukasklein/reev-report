@@ -53,6 +53,8 @@ export default function Home() {
           ladestation,
           anschluss,
           evseId,
+          __,
+          preisProKwh,
           verbrauch,
         ] = dataParse[i];
 
