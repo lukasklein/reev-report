@@ -43,12 +43,17 @@ export default function Home() {
         const [
           _,
           kostenstelle,
+          info1,
+          info2,
+          kennzeichen,
           nutzer,
+          email,
           ladekarte,
           eingestecktAm,
           ausgestecktAm,
           ladedauer,
           zeitAngesteckt,
+          parkgebuehrZeit,
           standort,
           ladestation,
           anschluss,
@@ -56,6 +61,10 @@ export default function Home() {
           __,
           preisProKwh,
           verbrauch,
+          signierteZaehlerwerte,
+          zaehlerstandStart,
+          zaehlerstandEnde,
+          standorttyp
         ] = dataParse[i];
 
         if (!ladekarte) continue;
