@@ -9,6 +9,7 @@ const fileTypes = ["XLSX"];
 export default function Home() {
   const [ladevorgaenge, setLadevorgaenge] = useState([]);
   const [ladekarte, setLadekarte] = useState("");
+  const [ladekarteName, setLadekarteName] = useState("");
   const ladekarten = useMemo(() => {
     // @ts-ignore
     return ladevorgaenge
@@ -16,8 +17,14 @@ export default function Home() {
       .filter((v, i, a) => a.indexOf(v) === i);
   }, [ladevorgaenge]);
   useEffect(() => {
-    ladekarten.length && setLadekarte(ladekarten[0]);
-  }, [ladekarten]);
+    if(ladekarteName) {
+      // update ladevorgaenge
+      setLadevorgaenge(ladevorgaenge.map((lfg) => ({
+        ...lfg,
+        ladekarteOverride: ladekarteName,
+      })));
+    }
+  }, [ladekarteName, ladevorgaenge]);
   const [tarif, setTarif] = useState(0.3757);
   const [date, setDate] = useState(new Date());
   const [range, setRange] = useState([new Date(), new Date()]);
@@ -83,9 +90,84 @@ export default function Home() {
             verbrauch,
           },
         ]);
+        setLadekarte(ladekarte);
+        setLadekarteName(ladekarte);
       }
     };
     reader.readAsBinaryString(file);
+  };
+  const handleChangeWARP = (file: any) => {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      setLadevorgaenge([]);
+      setLadekarte("");
+      if (!e.target) return;
+      
+      // Parse CSV data and filter out empty lines
+      const csvData = (e.target.result as string)
+        .split('\n')
+        .filter(line => line.trim() !== '') // Skip empty lines
+        .map(row => row.split(';')
+        .map(cell => cell.replace(/^"|"$/g, ''))); // Remove quotes
+      
+      // Skip header row
+      csvData.shift();
+      
+      // Helper function to parse date string
+      const parseDate = (dateStr: string) => {
+        const [date, time] = dateStr.split(' ');
+        const [day, month, year] = date.split('/');
+        const [hours, minutes] = time.split(':');
+        return new Date(+year, +month - 1, +day, +hours, +minutes);
+      };
+
+      // Set current date and date range
+      const firstEntry = csvData[0];
+      const lastEntry = csvData[csvData.length - 1];
+      if (firstEntry && lastEntry) {
+        setDate(new Date());
+        setRange([parseDate(firstEntry[0]), parseDate(lastEntry[0])]);
+      }
+
+      // Process each row
+      csvData.forEach(row => {
+        if (row.length < 8) return; // Skip invalid rows
+        
+        const [
+          startTime,
+          displayName,
+          chargedEnergy,
+          chargeDuration,
+          _,
+          meterStart,
+          meterEnd,
+          username
+        ] = row;
+
+        if (!username) return;
+        
+        const startDate = parseDate(startTime);
+        
+        // @ts-ignore
+        setLadevorgaenge((prevState) => [
+          ...prevState,
+          {
+            ladekarte: username,
+            eingestecktAm: startDate,
+            ausgestecktAm: new Date(startDate.getTime() + parseInt(chargeDuration) * 1000),
+            ladedauer: parseInt(chargeDuration),
+            zeitAngesteckt: parseInt(chargeDuration),
+            ladestation: displayName,
+            anschluss: '-',
+            evseId: '-',
+            verbrauch: parseFloat(chargedEnergy),
+          },
+        ]);
+        setLadekarte(username);
+        setLadekarteName(username);
+      });
+    };
+    reader.readAsText(file);
   };
 
   return (
@@ -97,10 +179,17 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <div className="max-w-4xl mx-auto space-y-4 py-12">
+      <label>Reev</label>
         <FileUploader
           handleChange={handleChange}
           name="file"
           types={fileTypes}
+        />
+      <label>Tinkerforge WARP</label>
+        <FileUploader
+          handleChange={handleChangeWARP}
+          name="file"
+          types={["CSV"]}
         />
         {!!ladevorgaenge.length && (
           <>
@@ -116,7 +205,10 @@ export default function Home() {
                 name="location"
                 className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                 defaultValue={ladekarte}
-                onChange={(e) => setLadekarte(e.target.value)}
+                onChange={(e) => {
+                  setLadekarte(e.target.value);
+                  setLadekarteName(e.target.value);
+                }}
               >
                 {ladekarten.map((lk) => (
                   <option key={lk} value={lk}>
@@ -124,6 +216,25 @@ export default function Home() {
                   </option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label
+                htmlFor="ladekarteName"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Ladekarte Name
+              </label>
+              <div className="relative mt-1 rounded-md shadow-sm">
+                <input
+                  type="text"
+                  name="ladekarteName"
+                  id="ladekarteName"
+                  className="block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  placeholder="Ladekarte Name"
+                  value={ladekarteName}
+                  onChange={(e) => setLadekarteName(e.target.value)}
+                />
+              </div>
             </div>
             <div>
               <label
@@ -266,7 +377,7 @@ const Ladevorgaenge: FC<{
                     year: "numeric",
                   })}{" "}
                   {lfg.ausgestecktAm.toLocaleTimeString("de-DE")} |{" "}
-                  {lfg.ladestation}
+                  {lfg.ladekarteOverride || lfg.ladestation}
                 </td>
                 <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                   {lfg.verbrauch.toLocaleString("de-DE")}
