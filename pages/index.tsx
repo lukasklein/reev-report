@@ -19,12 +19,13 @@ export default function Home() {
   useEffect(() => {
     if(ladekarteName) {
       // update ladevorgaenge
-      setLadevorgaenge(ladevorgaenge.map((lfg) => ({
+      // @ts-ignore
+      setLadevorgaenge(ladevorgaenge => ladevorgaenge.map((lfg: any) => ({
         ...lfg,
         ladekarteOverride: ladekarteName,
       })));
     }
-  }, [ladekarteName, ladevorgaenge]);
+  }, [ladekarteName]);
   const [tarif, setTarif] = useState(0.3757);
   const [date, setDate] = useState(new Date());
   const [range, setRange] = useState([new Date(), new Date()]);
