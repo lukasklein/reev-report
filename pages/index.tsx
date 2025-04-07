@@ -198,8 +198,8 @@ export default function Home() {
       };
 
       // Set current date and date range
-      const firstEntry = csvData[0];
-      const lastEntry = csvData[csvData.length - 1];
+      const firstEntry = csvData[csvData.length - 1];
+      const lastEntry = csvData[0];
       if (firstEntry && lastEntry) {
         setDate(new Date());
         setRange([parseDate(firstEntry[0]), parseDate(lastEntry[0])]);
