@@ -115,10 +115,11 @@ export default function Home() {
       
       // Helper function to parse date string
       const parseDate = (dateStr: string) => {
+        // Format: "2025-03-28 13:21:48"
         const [date, time] = dateStr.split(' ');
-        const [day, month, year] = date.split('/');
-        const [hours, minutes] = time.split(':');
-        return new Date(+year, +month - 1, +day, +hours, +minutes);
+        const [year, month, day] = date.split('-');
+        const [hours, minutes, seconds] = time.split(':');
+        return new Date(+year, +month - 1, +day, +hours, +minutes, +seconds);
       };
 
       // Set current date and date range
@@ -170,6 +171,88 @@ export default function Home() {
     reader.readAsText(file);
   };
 
+  const handleChangeEVCC = (file: any) => {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      setLadevorgaenge([]);
+      setLadekarte("");
+      if (!e.target) return;
+      
+      // Parse CSV data and filter out empty lines
+      const csvData = (e.target.result as string)
+        .split('\n')
+        .filter(line => line.trim() !== '') // Skip empty lines
+        .map(row => row.split(',')
+        .map(cell => cell.replace(/^"|"$/g, ''))); // Remove quotes
+      
+      // Skip header row
+      csvData.shift();
+      
+      // Helper function to parse date string
+      const parseDate = (dateStr: string) => {
+        // Format: "2025-03-28 13:21:48"
+        const [date, time] = dateStr.split(' ');
+        const [year, month, day] = date.split('-');
+        const [hours, minutes, seconds] = time.split(':');
+        return new Date(+year, +month - 1, +day, +hours, +minutes, +seconds);
+      };
+
+      // Set current date and date range
+      const firstEntry = csvData[0];
+      const lastEntry = csvData[csvData.length - 1];
+      if (firstEntry && lastEntry) {
+        setDate(new Date());
+        setRange([parseDate(firstEntry[0]), parseDate(lastEntry[0])]);
+      }
+
+      // Process each row
+      csvData.forEach(row => {
+        if (row.length < 8) return; // Skip invalid rows
+        
+        const [
+          startTime,
+          endTime,
+          chargingPoint,
+          displayName,
+          username,
+          mileage,
+          meterStart,
+          meterEnd,
+          chargedEnergy,
+          chargeDuration,
+          solar,
+          price,
+          kwHprice,
+          co2
+        ] = row;
+
+        if (!username) return;
+        
+        const startDate = parseDate(startTime);
+        const endDate = parseDate(endTime);
+        
+        // @ts-ignore
+        setLadevorgaenge((prevState) => [
+          ...prevState,
+          {
+            ladekarte: username,
+            eingestecktAm: startDate,
+            ausgestecktAm: endDate,
+            ladedauer: parseInt(chargeDuration),
+            zeitAngesteckt: parseInt(chargeDuration),
+            ladestation: displayName,
+            anschluss: '-',
+            evseId: '-',
+            verbrauch: parseFloat(chargedEnergy),
+          },
+        ]);
+        setLadekarte(username);
+        setLadekarteName(username);
+      });
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <>
       <Head>
@@ -188,6 +271,12 @@ export default function Home() {
       <label>Tinkerforge WARP</label>
         <FileUploader
           handleChange={handleChangeWARP}
+          name="file"
+          types={["CSV"]}
+        />
+        <label>EVCC</label>
+        <FileUploader
+          handleChange={handleChangeEVCC}
           name="file"
           types={["CSV"]}
         />
